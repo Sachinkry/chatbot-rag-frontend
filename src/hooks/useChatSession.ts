@@ -1,96 +1,130 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Message, MessageType } from '../types/types';
-import { generateBotResponse } from '../utils/botResponses';
+
+// Define the return type for the hook
+interface ChatSession {
+  messages: Message[];
+  isTyping: boolean;
+  addMessage: (content: string, type: MessageType) => void;
+  resetSession: () => void;
+  sessionId: string;
+  error: string | null;
+}
 
 // Generate a random session ID for the user
 const generateSessionId = () => `session_${Math.random().toString(36).substring(2, 15)}`;
 
-export default function useChatSession() {
+export default function useChatSession(): ChatSession {
   const [sessionId, setSessionId] = useState<string>(() => {
     const savedId = localStorage.getItem('chatSessionId');
     return savedId || generateSessionId();
   });
   
-  const [messages, setMessages] = useState<Message[]>(() => {
-    try {
-      const savedMessages = localStorage.getItem(`messages_${sessionId}`);
-      if (savedMessages) {
-        return JSON.parse(savedMessages);
-      }
-    } catch (error) {
-      console.error('Error parsing saved messages', error);
-    }
-    
-    // Default welcome message
-    return [
-      {
-        id: '1',
-        content: "Hello! I'm your news assistant. Ask me about any recent news or topics you're interested in.",
-        type: MessageType.BOT,
-        timestamp: new Date().toISOString(),
-      },
-    ];
-  });
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: '1',
+      content: "Hello! I'm your news assistant. Ask me about any recent news or topics you're interested in.",
+      type: MessageType.BOT,
+      timestamp: new Date().toISOString(),
+    },
+  ]);
   
   const [isTyping, setIsTyping] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Save messages to localStorage whenever they change
+  // Fetch chat history on mount
   useEffect(() => {
-    try {
-      localStorage.setItem(`messages_${sessionId}`, JSON.stringify(messages));
-      localStorage.setItem('chatSessionId', sessionId);
-    } catch (error) {
-      console.error('Error saving messages', error);
-    }
-  }, [messages, sessionId]);
+    const fetchHistory = async () => {
+      try {
+        const response = await fetch(`http://localhost:3000/history?session_id=${sessionId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch chat history');
+        }
+        const data = await response.json();
+        const historyMessages = data.messages || [];
+        if (historyMessages.length > 0) {
+          setMessages(historyMessages);
+        }
+      } catch (err) {
+        console.error('Error fetching history:', err);
+        setError('Failed to load chat history. Please try again.');
+      }
+    };
 
-  const addMessage = useCallback((content: string, type: MessageType) => {
+    fetchHistory();
+    localStorage.setItem('chatSessionId', sessionId);
+  }, [sessionId]);
+
+  const addMessage = useCallback(async (content: string, type: MessageType) => {
+    if (type !== MessageType.USER) return;
+
     const newMessage: Message = {
       id: Date.now().toString(),
       content,
       type,
       timestamp: new Date().toISOString(),
     };
-    
-    setMessages((prev) => [...prev, newMessage]);
-    
-    // If user message, generate bot response
-    if (type === MessageType.USER) {
-      setIsTyping(true);
-      
-      // Simulate typing delay and response generation
-      setTimeout(() => {
-        generateBotResponse(content).then((response) => {
-          const botMessage: Message = {
-            id: Date.now().toString(),
-            content: response,
-            type: MessageType.BOT,
-            timestamp: new Date().toISOString(),
-          };
-          
-          setMessages((prev) => [...prev, botMessage]);
-          setIsTyping(false);
-        });
-      }, 1500);
-    }
-  }, []);
 
-  const resetSession = useCallback(() => {
-    const newSessionId = generateSessionId();
-    setSessionId(newSessionId);
-    
-    // Clear previous session messages
-    localStorage.removeItem(`messages_${sessionId}`);
-    
-    // Set initial welcome message
-    setMessages([
-      {
-        id: '1',
-        content: "Hello! I'm your news assistant. Ask me about any recent news or topics you're interested in.",
+    setMessages((prev) => [...prev, newMessage]);
+    setIsTyping(true);
+    setError(null);
+
+    try {
+      const response = await fetch('http://localhost:3000/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, message: content }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      const data = await response.json();
+      const botMessage: Message = {
+        id: Date.now().toString(),
+        content: data.response,
         type: MessageType.BOT,
         timestamp: new Date().toISOString(),
-      },
-    ]);
+      };
+
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setError('Failed to send message. Please try again.');
+      setMessages((prev) => prev.filter((msg) => msg.id !== newMessage.id));
+    } finally {
+      setIsTyping(false);
+    }
+  }, [sessionId]);
+
+  const resetSession = useCallback(async () => {
+    try {
+      const response = await fetch('http://localhost:3000/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reset session');
+      }
+
+      const newSessionId = generateSessionId();
+      setSessionId(newSessionId);
+      setMessages([
+        {
+          id: '1',
+          content: "Hello! I'm your news assistant. Ask me about any recent news or topics you're interested in.",
+          type: MessageType.BOT,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+      setError(null);
+    } catch (err) {
+      console.error('Error resetting session:', err);
+      setError('Failed to reset session. Please try again.');
+    }
   }, [sessionId]);
 
   return {
@@ -99,5 +133,6 @@ export default function useChatSession() {
     addMessage,
     resetSession,
     sessionId,
+    error,
   };
 }

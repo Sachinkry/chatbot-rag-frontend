@@ -4,13 +4,12 @@ import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import ChatHeader from './ChatHeader';
 import { MessageType } from '../types/types';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, AlertCircle } from 'lucide-react';
 
 const ChatInterface: React.FC = () => {
-  const { messages, isTyping, addMessage, resetSession, sessionId } = useChatSession();
+  const { messages, isTyping, addMessage, resetSession, sessionId, error } = useChatSession();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -39,6 +38,13 @@ const ChatInterface: React.FC = () => {
               <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
               <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
             </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex items-center space-x-2 text-red-400">
+            <AlertCircle size={16} />
+            <span>{error}</span>
           </div>
         )}
         
