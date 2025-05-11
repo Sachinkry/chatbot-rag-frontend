@@ -32,7 +32,7 @@ export default function useChatSession(): ChatSession {
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'; // Fallback for local testing
+  const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL //|| 'http://localhost:3000'; // Fallback for local testing
   // Fetch chat history on mount
   useEffect(() => {
     const fetchHistory = async () => {
@@ -72,7 +72,7 @@ export default function useChatSession(): ChatSession {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:3000/chat', {
+      const response = await fetch(`${VITE_BACKEND_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId, message: content }),
@@ -102,7 +102,7 @@ export default function useChatSession(): ChatSession {
 
   const resetSession = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:3000/reset', {
+      const response = await fetch(`${VITE_BACKEND_URL}/reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: sessionId }),
