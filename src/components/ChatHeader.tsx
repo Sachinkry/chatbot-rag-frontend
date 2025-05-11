@@ -1,5 +1,5 @@
 import React from 'react';
-import { Newspaper } from 'lucide-react';
+import { Info, Newspaper } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from './ThemeToggle';
 
@@ -15,7 +15,26 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ sessionId }) => {
           <Newspaper size={20} className="text-white" />
         </div>
         <div>
-          <h1 className="font-semibold text-lg text-white">NewsChat AI</h1>
+        <div className="flex items-center space-x-2 relative group">
+  <h1 className="font-semibold text-lg text-white">NewsChat AI</h1>
+  <Info className="w-4 h-4 text-gray-400 cursor-pointer" />
+
+  {/* Tooltip */}
+  <div className="absolute top-6 left-0 z-50 hidden group-hover:block bg-black text-white text-xs rounded-lg p-2 w-[300px] shadow-lg">
+    Try asking:
+    <ul className="list-disc list-inside mt-1 space-y-1">
+      <li>Pahalgam Attack</li>
+      <li>What is Operation Sindoor?</li>
+      <li>US & china trade deals</li>
+      <li>Trump </li>
+      <li>New Pope Leo & AI</li>
+      <li>Why pope chose Leo XIV name?</li>
+      <li>Bhool Chuk Maaf movie</li>
+      <li>Drones amid India Pak escalation</li>
+      <li>May 10 ceasefire violation?</li>
+    </ul>
+  </div>
+</div>
           <p className="text-xs text-gray-400">News & information assistant</p>
         </div>
       </div>
