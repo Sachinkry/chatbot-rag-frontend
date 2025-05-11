@@ -32,11 +32,13 @@ export default function useChatSession(): ChatSession {
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'; // Fallback for local testing
   // Fetch chat history on mount
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/history?session_id=${sessionId}`);
+        // const response = await fetch(`http://localhost:3000/history?session_id=${sessionId}`);
+        const response = await fetch(`${VITE_BACKEND_URL}/history?session_id=${sessionId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch chat history');
         }
